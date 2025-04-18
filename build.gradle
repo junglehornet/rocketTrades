@@ -10,8 +10,8 @@ architectury {
 }
 
 forgix {
-    group = "games.luminance.rockettrade"
-    mergedJarName = "rocketTrade"
+    group = "games.luminance.rockettrades"
+    mergedJarName = "rocketTrades"
 }
 
 allprojects {
@@ -44,6 +44,7 @@ subprojects {
     dependencies {
         minecraft "net.minecraft:minecraft:$rootProject.minecraft_version"
         mappings loom.officialMojangMappings()
+        implementation 'org.json:json:20250107'
     }
 
     java {

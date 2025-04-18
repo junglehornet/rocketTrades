@@ -4,30 +4,30 @@ loaderVersion = "[47,)"
 license = "All Rights Reserved"
 
 [[mods]]
-modId = "rockettrade"
+modId = "rockettrades"
 version = "${version}"
-displayName = "RocketTrade"
+displayName = "RocketTrades"
 authors = "JungleHornet"
 description = '''
 Adds trade to buy rockets from cartographers.
 '''
 #logoFile = ""
 
-[[dependencies.rockettrade]]
+[[dependencies.rockettrades]]
 modId = "forge"
 mandatory = true
 versionRange = "[47,)"
 ordering = "NONE"
 side = "BOTH"
 
-[[dependencies.rockettrade]]
+[[dependencies.rockettrades]]
 modId = "minecraft"
 mandatory = true
 versionRange = "[1.20.1,)"
 ordering = "NONE"
 side = "BOTH"
 
-[[dependencies.rockettrade]]
+[[dependencies.rockettrades]]
 modId = "architectury"
 mandatory = true
 versionRange = "[9.2.14,)"

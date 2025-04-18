@@ -1,8 +1,11 @@
 package games.luminance.fabric;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.fabricmc.api.ModInitializer;
 
-import games.luminance.rockettrade.RocketTrade;
+import games.luminance.rockettrades.RocketTrades;
+
+import java.io.FileNotFoundException;
 
 public final class ExampleModFabric implements ModInitializer {
     @Override
@@ -12,6 +15,12 @@ public final class ExampleModFabric implements ModInitializer {
         // Proceed with mild caution.
 
         // Run our common setup.
-        RocketTrade.init();
+        try {
+            RocketTrades.init();
+        } catch (CommandSyntaxException e) {
+            throw new RuntimeException(e);
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

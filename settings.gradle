@@ -7,7 +7,7 @@ pluginManagement {
     }
 }
 
-rootProject.name = 'rockettrade'
+rootProject.name = 'rockettrades'
 
 include 'common'
 include 'fabric'
