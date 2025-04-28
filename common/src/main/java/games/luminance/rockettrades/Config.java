@@ -17,10 +17,4 @@ public class Config {
             }
         }
     }
-
-    public static void registerInt(String key, String description, int defaultValue, int min, int max) {
-        String confStr = configPath.toFile().toString();
-        System.out.println("----------------------------------------------------------------confstr");
-        System.out.println(confStr);
-    }
 }
