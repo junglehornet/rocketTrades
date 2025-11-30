@@ -1,69 +1,108 @@
 package games.luminance.rockettrades;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.serialization.JsonOps;
 import dev.architectury.registry.level.entity.trade.TradeRegistry;
-import net.minecraft.nbt.TagParser;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.npc.VillagerProfession;
+import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.item.trading.MerchantOffer;
-import org.json.JSONObject;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.Optional;
 
 public class RocketTrade {
-    private final ItemStack priceItem;
-    private final ItemStack soldItem;
+    private final ItemStack inputItem;
+    private final ItemStack outputItem;
     private final int maxTrades;
     private final int xp;
     private final float priceMultiplier;
     private final int villagerLevel;
-    private final VillagerProfession profession;
+    private final ResourceKey<VillagerProfession> profession;
+    private final String name;
 
-    public RocketTrade(ItemStack priceItem, ItemStack soldItem, int maxTrades, int xp, float priceMultiplier, int villagerLevel, VillagerProfession profession) {
-        this.priceItem = priceItem;
-        this.soldItem = soldItem;
+    public RocketTrade(ItemStack inputItem, ItemStack outputItem, int maxTrades, int xp, float priceMultiplier, int villagerLevel, ResourceKey<VillagerProfession> profession, String name) {
+        this.inputItem = inputItem;
+        this.outputItem = outputItem;
         this.maxTrades = maxTrades;
         this.xp = xp;
         this.priceMultiplier = priceMultiplier;
         this.villagerLevel = villagerLevel;
         this.profession = profession;
+        this.name = name;
     }
 
-    private static VillagerProfession getProfessionFromString(String professionString) {
-        Field[] professions = VillagerProfession.class.getFields();
-        System.out.println(Arrays.toString(VillagerProfession.class.getFields()));
-        for (Field f: professions) {
-            if (!f.isEnumConstant()) {
-                continue;
-            }
+    public String getName() {
+        return this.name;
+    }
+
+    public static ResourceKey<VillagerProfession> getProfessionFromString(String professionString, CommandContext<CommandSourceStack> context) {
+        Registry<VillagerProfession> professionRegistry = context.getSource().getServer().registryAccess().lookupOrThrow(Registries.VILLAGER_PROFESSION);
+        Object[] professions = professionRegistry.stream().toArray();
+        for (Object o: professions) {
             VillagerProfession p;
-            try {
-                p = (VillagerProfession) f.get(VillagerProfession.class);
-            } catch (IllegalAccessException e) {
-                System.out.println("Error: Could not get villager profession");
-                return null;
-            }
-            if (p.name().equals(professionString)) {
-                return p;
+            p = (VillagerProfession) o;
+            String name = p.name().getString().toLowerCase();
+            if (name.equals(professionString)) {
+                ResourceKey<VillagerProfession> profession = professionRegistry.getResourceKey(p).orElseThrow();
+                return profession;
             }
         }
         return null;
     }
 
-    public String getJson() {
+    private JsonElement itemStackToJson(ItemStack stack) {
+        Optional<JsonElement> optional = ItemStack.CODEC.encodeStart(JsonOps.INSTANCE, stack).result();
+        return optional.orElse(null);
+    }
+
+    private static JsonObject resourceLocationToJson(ResourceLocation loc) {
         JsonObject json = new JsonObject();
-        json.addProperty("priceItem", this.priceItem.save(new CompoundTag()).toString());
-        json.addProperty("soldItem", this.soldItem.save(new CompoundTag()).toString());
+        json.addProperty("namespace", loc.getNamespace());
+        json.addProperty("path", loc.getPath());
+        return json;
+    }
+
+    private static JsonObject resourceKeyToJson(ResourceKey key) {
+        JsonObject json = new JsonObject();
+        json.add("registry", resourceLocationToJson(key.registry()));
+        json.add("location", resourceLocationToJson(key.location()));
+        return json;
+    }
+
+    public JsonObject getJson() {
+        JsonObject json = new JsonObject();
+        json.add("priceItem", itemStackToJson(this.inputItem));
+        json.add("soldItem", itemStackToJson(this.outputItem));
         json.addProperty("maxTrades", this.maxTrades);
         json.addProperty("xp", this.xp);
         json.addProperty("priceMultiplier", this.priceMultiplier);
         json.addProperty("villagerLevel", this.villagerLevel);
-        json.addProperty("profession", profession.name());
-        return json.toString();
+        json.add("profession", resourceKeyToJson(this.profession));
+        json.addProperty("name", this.name);
+        return json;
+    }
+
+    private static ResourceLocation jsonToResourceLocation(JsonObject obj) {
+        return ResourceLocation.fromNamespaceAndPath(obj.get("namespace").getAsString(), obj.get("path").getAsString());
+    }
+
+    private static ResourceKey jsonToResourceKey(JsonObject obj) {
+        ResourceKey key = ResourceKey.create(
+                ResourceKey.createRegistryKey(jsonToResourceLocation(obj.getAsJsonObject("registry"))),
+                jsonToResourceLocation(obj.getAsJsonObject("location"))
+        );
+        return key;
     }
 
     public static RocketTrade fromString(String jsonString) throws CommandSyntaxException {
@@ -71,24 +110,22 @@ public class RocketTrade {
             return null;
         }
         JsonObject json = JsonParser.parseString(jsonString).getAsJsonObject();
-        ItemStack priceItem = ItemStack.of(TagParser.parseTag(json.get("priceItem").getAsString()));
-        ItemStack soldItem = ItemStack.of(TagParser.parseTag(json.get("soldItem").getAsString()));
+        ItemStack priceItem = ItemStack.CODEC.parse(JsonOps.INSTANCE, json.get("priceItem")).getOrThrow();
+        ItemStack soldItem = ItemStack.CODEC.parse(JsonOps.INSTANCE, json.get("soldItem")).getOrThrow();
         int maxUses = json.get("maxTrades").getAsInt();
         int xp = json.get("xp").getAsInt();
         float priceMultiplier = json.get("priceMultiplier").getAsFloat();
         int villagerLevel = json.get("villagerLevel").getAsInt();
-        VillagerProfession profession = getProfessionFromString(json.get("profession").getAsString());
-        if (profession == null) {
-            return null;
-        }
-        RocketTrade trade = new RocketTrade(priceItem, soldItem, maxUses, xp, priceMultiplier, villagerLevel, profession);
+        String name = json.get("name").getAsString();
+        ResourceKey<VillagerProfession> profession = jsonToResourceKey(json.getAsJsonObject("profession"));
+        RocketTrade trade = new RocketTrade(priceItem, soldItem, maxUses, xp, priceMultiplier, villagerLevel, profession, name);
         return trade;
     }
 
     public void registerTrade() {
         TradeRegistry.registerVillagerTrade(this.profession, this.villagerLevel, (entity, randomSource) -> new MerchantOffer(
-                this.priceItem,
-                this.soldItem,
+                new ItemCost(this.inputItem.getItem()),
+                this.outputItem,
                 this.maxTrades,
                 this.xp,
                 this.priceMultiplier

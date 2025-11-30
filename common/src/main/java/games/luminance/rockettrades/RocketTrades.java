@@ -1,67 +1,29 @@
 package games.luminance.rockettrades;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
+import com.google.gson.stream.MalformedJsonException;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.architectury.platform.Platform;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import org.json.JSONArray;
+import net.minecraft.world.item.component.Fireworks;
 
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Scanner;
+import java.util.*;
 
 public final class RocketTrades {
     public static final String MOD_ID = "rockettrades";
+    private static final Path jsonPath = Path.of(Platform.getConfigFolder().toString() + "/rockettrades/trades.json");
+    private static final Path jsonDir = Path.of(Platform.getConfigFolder().toString() + "/rockettrades/");
+    private static ArrayList<RocketTrade> tradeList = new ArrayList<>();
     private static String json = "";
 
-    private static void save() throws IOException {
-        FileWriter jsonWriter = new FileWriter(Platform.getConfigFolder().toString() + "/rockettrades/trades.json");
-        jsonWriter.write(json);
-        jsonWriter.close();
-    }
-
-    public static void init() throws CommandSyntaxException, FileNotFoundException {
-        // Write common init code here.
-
-        /*
-        old code
-        TradeRegistry.registerVillagerTrade(VillagerProfession.CARTOGRAPHER, 1, (entity, randomSource) -> {
-            ItemStack rockets = new ItemStack(net.minecraft.world.item.Items.FIREWORK_ROCKET, 3);
-            CompoundTag tag = new CompoundTag();
-            CompoundTag flightTag = new CompoundTag();
-            flightTag.putByte("Flight", (byte) 1);
-            tag.put("Fireworks", flightTag);
-            rockets.setTag(tag);
-
-            return new MerchantOffer(
-                    new ItemStack(net.minecraft.world.item.Items.EMERALD, 1), // BuyingItem
-                    rockets, // SellingItem
-                    7, // maxTrades
-                    8, // xp
-                    0.02F // priceMultiplier
-            );
-        });
-         */
-
-        ItemStack rockets = new ItemStack(Items.FIREWORK_ROCKET, 3);
-        CompoundTag tag = new CompoundTag();
-        CompoundTag flightTag = new CompoundTag();
-        flightTag.putByte("Flight", (byte) 1);
-        tag.put("Fireworks", flightTag);
-        rockets.setTag(tag);
-        RocketTrade fireworkTrade = new RocketTrade(new ItemStack(Items.EMERALD, 1), rockets, 7, 8, 0.02f, 1, VillagerProfession.CARTOGRAPHER);
-
-        Path jsonPath = Path.of(Platform.getConfigFolder().toString() + "/rockettrades/trades.json");
-        Path jsonDir = Path.of(Platform.getConfigFolder().toString() + "/rockettrades/");
-
+    private static void save() throws IOException, CommandSyntaxException {
         if (!jsonDir.toFile().exists() || jsonDir.toFile().exists() && jsonDir.toFile().isDirectory()) {
             if (jsonDir.toFile().isDirectory()) {
                 jsonDir.toFile().delete();
@@ -71,49 +33,120 @@ public final class RocketTrades {
                 jsonDir.toFile().mkdir();
             } catch (Exception e) {
                 e.printStackTrace();
+                return;
             }
         }
 
         if (!jsonPath.toFile().exists()) {
             try {
                 jsonPath.toFile().createNewFile();
-                json = "[" + fireworkTrade.getJson() + "]";
+                json = "[" + getRocketTrade().getJson() + "]";
                 try {
                     save();
                 } catch (IOException e) {
                     System.out.println("Error: RocketTrades failed to save.");
                     e.printStackTrace();
+                    return;
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+                return;
             }
         }
 
+        updateJson();
+        try {
+            FileWriter jsonWriter = new FileWriter(Platform.getConfigFolder().toString() + "/rockettrades/trades.json");
+            jsonWriter.write(json);
+            jsonWriter.close();
+        } catch (IOException e) {
+            System.out.println("Error: RocketTrades failed to save trades to disk.");
+            e.printStackTrace();
+        }
+    }
+
+    private static void updateJson() {
+        JsonArray jsonArray = new JsonArray();
+        for (RocketTrade trade: tradeList) {
+            jsonArray.add(trade.getJson());
+        }
+        json = jsonArray.toString();
+    }
+
+    public static ArrayList<RocketTrade> getTradeList() {
+        return tradeList;
+    }
+
+    public static String[] getNameList() {
+        String[] names = new String[tradeList.size()];
+        for (int i = 0; i < names.length; i++) {
+            names[i] = tradeList.get(i).getName();
+        }
+        return names;
+    }
+
+    public static void addTrade(RocketTrade trade) {
+        tradeList.add(trade);
+        try {
+            save();
+        } catch (IOException | CommandSyntaxException e) {
+            throw new RuntimeException(e);
+        }
+        trade.registerTrade();
+    }
+
+    public static boolean exists(String name) {
+        for (RocketTrade t: tradeList) if (Objects.equals(t.getName(), name)) return true;
+        return false;
+    }
+
+    public static void delTrade(String name) {
+        tradeList.removeIf(t -> Objects.equals(t.getName(), name));
+    }
+
+    private static RocketTrade getRocketTrade() {
+        ItemStack rockets = new ItemStack(Items.FIREWORK_ROCKET, 3);
+        Fireworks fireworkComponent = new Fireworks(1, List.of());
+        rockets.set(DataComponents.FIREWORKS, fireworkComponent);
+        return new RocketTrade(new ItemStack(Items.EMERALD, 1), rockets, 7, 8, 0.02f, 1, VillagerProfession.CARTOGRAPHER, "Rocket Trade");
+    }
+
+    private static void loadTradesFromJson() throws FileNotFoundException, CommandSyntaxException {
         Scanner jsonReader = new Scanner(jsonPath.toFile());
-        StringBuilder jsonBuilder = new StringBuilder("");
+        StringBuilder jsonBuilder = new StringBuilder();
         while (jsonReader.hasNextLine()) {
             jsonBuilder.append(jsonReader.nextLine());
         }
         jsonReader.close();
-        json += jsonBuilder.toString();
-        if (json.isEmpty()) {
-            json = "[]";
-            try {
-                save();
-            } catch (IOException e) {
-                System.out.println("Error: RocketTrades failed to save.");
-                e.printStackTrace();
-            }
-        }
-        System.out.println("--------JSON--------\n" + fireworkTrade.getJson());
+        json = jsonBuilder.toString();
+        if (json.isEmpty()) json = "[]";
+
         JsonArray tradesGSON = JsonParser.parseString(json).getAsJsonArray();
         Object[] trades = tradesGSON.asList().toArray();
 
         for (Object o : trades) {
             RocketTrade trade = RocketTrade.fromString(o.toString());
             if (trade != null) {
+                tradeList.add(trade);
                 trade.registerTrade();
             }
         }
+    }
+
+    public static void init() throws CommandSyntaxException, IOException {
+        // Write common init code here.
+        Scanner jsonReader = new Scanner(jsonPath.toFile());
+        StringBuilder jsonBuilder = new StringBuilder();
+        while (jsonReader.hasNextLine()) {
+            jsonBuilder.append(jsonReader.nextLine());
+        }
+        jsonReader.close();
+        json = jsonBuilder.toString();
+
+        RocketTradesCommands.register();
+
+        loadTradesFromJson();
+        save();
+        updateJson();
     }
 }

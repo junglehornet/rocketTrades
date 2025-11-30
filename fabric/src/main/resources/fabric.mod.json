@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "id": "rockettrades",
   "version": "${version}",
-  "name": "RocketTrades",
-  "description": "Adds trade to buy rockets from cartographers.",
+  "name": "Rocket Trades",
+  "description": "Custom villager trades",
   "authors": [
     "JungleHornet"
   ],
@@ -11,24 +11,22 @@
     "homepage": "https://fabricmc.net/",
     "sources": "https://github.com/FabricMC/fabric-example-mod"
   },
-  "license": "All Rights Reserved",
+  "license": "CC0-1.0",
   "icon": "assets/rockettrades/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [
-      "games.luminance.fabric.ExampleModFabric"
+      "games.luminance.fabric.RocketTradesFabric"
     ],
     "client": [
-      "games.luminance.fabric.client.ExampleModFabricClient"
+      "games.luminance.fabric.client.RocketTradesFabricClient"
     ]
   },
-  "mixins": [
-  ],
   "depends": {
-    "fabricloader": ">=0.16.10",
-    "minecraft": "~1.20.1",
-    "java": ">=17",
-    "architectury": ">=9.2.14",
+    "fabricloader": ">=0.18.1",
+    "minecraft": "~1.21.10",
+    "java": ">=21",
+    "architectury": ">=18.0.6",
     "fabric-api": "*"
   },
   "suggests": {
