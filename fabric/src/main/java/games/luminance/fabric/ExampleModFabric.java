@@ -6,6 +6,7 @@ import net.fabricmc.api.ModInitializer;
 import games.luminance.rockettrades.RocketTrades;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 
 public final class ExampleModFabric implements ModInitializer {
     @Override
@@ -17,9 +18,7 @@ public final class ExampleModFabric implements ModInitializer {
         // Run our common setup.
         try {
             RocketTrades.init();
-        } catch (CommandSyntaxException e) {
-            throw new RuntimeException(e);
-        } catch (FileNotFoundException e) {
+        } catch (CommandSyntaxException | IOException e) {
             throw new RuntimeException(e);
         }
     }

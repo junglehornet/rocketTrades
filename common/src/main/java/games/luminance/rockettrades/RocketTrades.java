@@ -52,6 +52,16 @@ public final class RocketTrades {
                 e.printStackTrace();
                 return;
             }
+        } else {
+            if (json.isEmpty()) {
+                Scanner jsonReader = new Scanner(jsonPath.toFile());
+                StringBuilder jsonBuilder = new StringBuilder();
+                while (jsonReader.hasNextLine()) {
+                    jsonBuilder.append(jsonReader.nextLine());
+                }
+                jsonReader.close();
+                json = jsonBuilder.toString();
+            }
         }
 
         updateJson();
@@ -135,18 +145,10 @@ public final class RocketTrades {
 
     public static void init() throws CommandSyntaxException, IOException {
         // Write common init code here.
-        Scanner jsonReader = new Scanner(jsonPath.toFile());
-        StringBuilder jsonBuilder = new StringBuilder();
-        while (jsonReader.hasNextLine()) {
-            jsonBuilder.append(jsonReader.nextLine());
-        }
-        jsonReader.close();
-        json = jsonBuilder.toString();
+        save();
 
         RocketTradesCommands.register();
 
         loadTradesFromJson();
-        save();
-        updateJson();
     }
 }
