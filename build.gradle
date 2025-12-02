@@ -11,8 +11,9 @@ architectury {
 
 forgix {
     archiveVersion = "$rootProject.mod_version"
-    fabric()
+    archiveClassifier = "fabric-neoforge-$rootProject.minecraft_version"
     neoforge()
+    fabric()
 }
 
 allprojects {

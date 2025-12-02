@@ -2,10 +2,15 @@ package games.luminance.rockettrades;
 
 import com.google.gson.*;
 import com.google.gson.stream.MalformedJsonException;
+import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.architectury.platform.Platform;
 import dev.architectury.registry.level.entity.trade.TradeRegistry;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -110,6 +115,39 @@ public final class RocketTrades {
         return new RocketTrade(new ItemStack(Items.EMERALD, 1), rockets, 7, 8, 0.02f, 1, VillagerProfession.CARTOGRAPHER, "Rocket Trade");
     }
 
+    public static ResourceKey<VillagerProfession>[] getProfessionList(CommandContext<CommandSourceStack> context) {
+        Registry<VillagerProfession> professionRegistry = getProfessionRegistry(context);
+        Object[] professions = professionRegistry.stream().toArray();
+        ResourceKey<VillagerProfession>[] filtered = new ResourceKey[professions.length - 2];
+        String[] exclusions = {"villager", "nitwit"};
+        for (int i = 0; i < professions.length; i++) {
+            VillagerProfession p;
+            p = (VillagerProfession) professions[i];
+            String name = p.name().getString().toLowerCase();
+            if (Arrays.binarySearch(exclusions, name) != -1) continue;
+            filtered[i] = professionRegistry.getResourceKey(p).orElseThrow();
+        }
+        return filtered;
+    }
+
+    public static String getProfessionName(ResourceKey<VillagerProfession> profession, CommandContext<CommandSourceStack> context) {
+        Registry<VillagerProfession> professionRegistry = getProfessionRegistry(context);
+        return professionRegistry.get(profession).orElseThrow().value().name().getString().toLowerCase();
+    }
+
+    public static String[] getProfessionNameList(CommandContext<CommandSourceStack> context) {
+        ResourceKey<VillagerProfession>[] professions = getProfessionList(context);
+        String[] names = new String[professions.length];
+        for (int i = 0; i < names.length; i++) {
+            names[i] = getProfessionName(professions[i], context);
+        }
+        return names;
+    }
+
+    private static Registry<VillagerProfession> getProfessionRegistry(CommandContext<CommandSourceStack> context) {
+        return context.getSource().getServer().registryAccess().lookupOrThrow(Registries.VILLAGER_PROFESSION);
+    }
+
     private static void loadTradesFromJson() throws CommandSyntaxException, FileNotFoundException {
         Scanner jsonReader = new Scanner(jsonPath.toFile());
         StringBuilder jsonBuilder = new StringBuilder();
@@ -122,7 +160,7 @@ public final class RocketTrades {
 
         JsonArray tradesGSON = JsonParser.parseString(json).getAsJsonArray();
 
-        System.out.println("====  RocketTrades loading trades...  ====");
+        System.out.println("[RocketTrades] Loading trades from file...");
         for (JsonElement o: tradesGSON) {
             RocketTrade trade = RocketTrade.fromString(o.toString());
             if (trade != null) {
@@ -131,7 +169,6 @@ public final class RocketTrades {
                 System.out.printf("--Trade Registered: %s\n", trade.getName());
             }
         }
-        System.out.println("==== RocketTrades done loading trades ====");
     }
 
     public static void init() throws CommandSyntaxException, IOException {

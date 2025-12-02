@@ -47,14 +47,10 @@ public class RocketTrade {
     }
 
     public static ResourceKey<VillagerProfession> getProfessionFromString(String professionString, CommandContext<CommandSourceStack> context) {
-        Registry<VillagerProfession> professionRegistry = context.getSource().getServer().registryAccess().lookupOrThrow(Registries.VILLAGER_PROFESSION);
-        Object[] professions = professionRegistry.stream().toArray();
-        for (Object o: professions) {
-            VillagerProfession p;
-            p = (VillagerProfession) o;
-            String name = p.name().getString().toLowerCase();
+        ResourceKey<VillagerProfession>[] professions = RocketTrades.getProfessionList(context);
+        for (ResourceKey<VillagerProfession> profession: professions) {
+            String name = RocketTrades.getProfessionName(profession, context);
             if (name.equals(professionString)) {
-                ResourceKey<VillagerProfession> profession = professionRegistry.getResourceKey(p).orElseThrow();
                 return profession;
             }
         }

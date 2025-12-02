@@ -36,11 +36,8 @@ public class RocketTradesCommands {
     };
 
     private static final SuggestionProvider<CommandSourceStack> VILLAGER_PROFESSION_SUGGESTIONS = (context, builder) -> {
-        Object[] professions = context.getSource().getServer().registryAccess().lookupOrThrow(Registries.VILLAGER_PROFESSION).stream().toArray();
-        for (Object o: professions) {
-            VillagerProfession p;
-            p = (VillagerProfession) o;
-            String name = p.name().getString().toLowerCase();
+        String[] professions = RocketTrades.getProfessionNameList(context);
+        for (String name: professions) {
             if (name.startsWith(builder.getRemaining().toLowerCase())) {
                 builder.suggest(name);
             }
