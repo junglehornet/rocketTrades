@@ -3,7 +3,7 @@ A custom villager trades mod.
 
 ### Contributing
 If you'd like to contribute to RocketTrades, fork the github repository, make your changes, and then open a pull request to bring them back into the main repository.
-All changes MUST be licensed under the MIT license.
+Changes will only be pulled back into the main repository if they are licensed under the MIT license.
 
 ### Need help?
 If you need help with using the mod, head over to [our Discord server](https://discord.gg/NeAHRgKrGs) and ask for help in a channel or open a support ticket.
