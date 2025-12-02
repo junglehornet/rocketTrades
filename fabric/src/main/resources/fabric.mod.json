@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "rockettrades",
   "version": "${version}",
-  "name": "Rocket Trades",
+  "name": "RocketTrades",
   "description": "Custom villager trades",
   "authors": [
     "JungleHornet"

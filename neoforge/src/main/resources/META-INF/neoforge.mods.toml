@@ -6,7 +6,7 @@ license = "All Rights Reserved"
 [[mods]]
 modId = "rockettrades"
 version = "${version}"
-displayName = "Rocket Trades"
+displayName = "RocketTrades"
 authors = "JungleHornet"
 description = '''
 Custom villager trades

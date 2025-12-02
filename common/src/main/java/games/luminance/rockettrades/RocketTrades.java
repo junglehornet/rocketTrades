@@ -115,17 +115,22 @@ public final class RocketTrades {
         return new RocketTrade(new ItemStack(Items.EMERALD, 1), rockets, 7, 8, 0.02f, 1, VillagerProfession.CARTOGRAPHER, "Rocket Trade");
     }
 
-    public static ResourceKey<VillagerProfession>[] getProfessionList(CommandContext<CommandSourceStack> context) {
+    private static boolean isExcluded(ResourceKey<VillagerProfession> profession, CommandContext<CommandSourceStack> context) {
+        String[] exclusions = {"nitwit", "villager"};
+        String name = getProfessionName(profession, context);
+        for (String exclusion: exclusions) {
+            if (name.equals(exclusion)) return true;
+        }
+        return false;
+    }
+
+    public static ArrayList<ResourceKey<VillagerProfession>> getProfessionList(CommandContext<CommandSourceStack> context) {
         Registry<VillagerProfession> professionRegistry = getProfessionRegistry(context);
-        Object[] professions = professionRegistry.stream().toArray();
-        ResourceKey<VillagerProfession>[] filtered = new ResourceKey[professions.length - 2];
-        String[] exclusions = {"villager", "nitwit"};
-        for (int i = 0; i < professions.length; i++) {
-            VillagerProfession p;
-            p = (VillagerProfession) professions[i];
-            String name = p.name().getString().toLowerCase();
-            if (Arrays.binarySearch(exclusions, name) != -1) continue;
-            filtered[i] = professionRegistry.getResourceKey(p).orElseThrow();
+        ArrayList<ResourceKey<VillagerProfession>> filtered = new ArrayList<>();
+        for (int i = 0; i < professionRegistry.size(); i++) {
+            ResourceKey<VillagerProfession> profession = professionRegistry.getResourceKey(professionRegistry.get(i).orElseThrow().value()).orElseThrow();
+            if (isExcluded(profession, context)) continue;
+            filtered.add(profession);
         }
         return filtered;
     }
@@ -136,10 +141,10 @@ public final class RocketTrades {
     }
 
     public static String[] getProfessionNameList(CommandContext<CommandSourceStack> context) {
-        ResourceKey<VillagerProfession>[] professions = getProfessionList(context);
-        String[] names = new String[professions.length];
+        ArrayList<ResourceKey<VillagerProfession>> professions = getProfessionList(context);
+        String[] names = new String[professions.size()];
         for (int i = 0; i < names.length; i++) {
-            names[i] = getProfessionName(professions[i], context);
+            names[i] = getProfessionName(professions.get(i), context);
         }
         return names;
     }

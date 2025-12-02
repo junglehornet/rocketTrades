@@ -18,6 +18,7 @@ import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.ItemStack;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -47,7 +48,7 @@ public class RocketTrade {
     }
 
     public static ResourceKey<VillagerProfession> getProfessionFromString(String professionString, CommandContext<CommandSourceStack> context) {
-        ResourceKey<VillagerProfession>[] professions = RocketTrades.getProfessionList(context);
+        ArrayList<ResourceKey<VillagerProfession>> professions = RocketTrades.getProfessionList(context);
         for (ResourceKey<VillagerProfession> profession: professions) {
             String name = RocketTrades.getProfessionName(profession, context);
             if (name.equals(professionString)) {
@@ -59,7 +60,7 @@ public class RocketTrade {
 
     private JsonElement itemStackToJson(ItemStack stack) {
         Optional<JsonElement> optional = ItemStack.CODEC.encodeStart(JsonOps.INSTANCE, stack).result();
-        return optional.orElse(null);
+        return optional.orElse(new JsonObject());
     }
 
     private static JsonObject resourceLocationToJson(ResourceLocation loc) {
