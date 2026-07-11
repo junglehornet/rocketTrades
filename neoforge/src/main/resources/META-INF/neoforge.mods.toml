@@ -1,7 +1,7 @@
 modLoader = "javafml"
-loaderVersion = "[10,)"
+loaderVersion = "[1,)"
 #issueTrackerURL = ""
-license = "All Rights Reserved"
+license = "MIT"
 
 [[mods]]
 modId = "rockettrades"
@@ -16,20 +16,20 @@ Custom villager trades
 [[dependencies.rockettrades]]
 modId = "neoforge"
 type = "required"
-versionRange = "[21.10,)"
+versionRange = "[21.1,)"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.rockettrades]]
 modId = "minecraft"
 type = "required"
-versionRange = "[1.21.10,)"
+versionRange = "[1.21.1,)"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.rockettrades]]
 modId = "architectury"
 type = "required"
-versionRange = "[18.0.6,)"
+versionRange = "[13.0.8,)"
 ordering = "AFTER"
 side = "BOTH"

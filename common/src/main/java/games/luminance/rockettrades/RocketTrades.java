@@ -1,16 +1,10 @@
 package games.luminance.rockettrades;
 
 import com.google.gson.*;
-import com.google.gson.stream.MalformedJsonException;
-import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.architectury.platform.Platform;
-import dev.architectury.registry.level.entity.trade.TradeRegistry;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -112,45 +106,7 @@ public final class RocketTrades {
         ItemStack rockets = new ItemStack(Items.FIREWORK_ROCKET, 3);
         Fireworks fireworkComponent = new Fireworks(1, List.of());
         rockets.set(DataComponents.FIREWORKS, fireworkComponent);
-        return new RocketTrade(new ItemStack(Items.EMERALD, 1), rockets, 7, 8, 0.02f, 1, VillagerProfession.CARTOGRAPHER, "Rocket Trade");
-    }
-
-    private static boolean isExcluded(ResourceKey<VillagerProfession> profession, CommandContext<CommandSourceStack> context) {
-        String[] exclusions = {"nitwit", "villager"};
-        String name = getProfessionName(profession, context);
-        for (String exclusion: exclusions) {
-            if (name.equals(exclusion)) return true;
-        }
-        return false;
-    }
-
-    public static ArrayList<ResourceKey<VillagerProfession>> getProfessionList(CommandContext<CommandSourceStack> context) {
-        Registry<VillagerProfession> professionRegistry = getProfessionRegistry(context);
-        ArrayList<ResourceKey<VillagerProfession>> filtered = new ArrayList<>();
-        for (int i = 0; i < professionRegistry.size(); i++) {
-            ResourceKey<VillagerProfession> profession = professionRegistry.getResourceKey(professionRegistry.get(i).orElseThrow().value()).orElseThrow();
-            if (isExcluded(profession, context)) continue;
-            filtered.add(profession);
-        }
-        return filtered;
-    }
-
-    public static String getProfessionName(ResourceKey<VillagerProfession> profession, CommandContext<CommandSourceStack> context) {
-        Registry<VillagerProfession> professionRegistry = getProfessionRegistry(context);
-        return professionRegistry.get(profession).orElseThrow().value().name().getString().toLowerCase();
-    }
-
-    public static String[] getProfessionNameList(CommandContext<CommandSourceStack> context) {
-        ArrayList<ResourceKey<VillagerProfession>> professions = getProfessionList(context);
-        String[] names = new String[professions.size()];
-        for (int i = 0; i < names.length; i++) {
-            names[i] = getProfessionName(professions.get(i), context);
-        }
-        return names;
-    }
-
-    private static Registry<VillagerProfession> getProfessionRegistry(CommandContext<CommandSourceStack> context) {
-        return context.getSource().getServer().registryAccess().lookupOrThrow(Registries.VILLAGER_PROFESSION);
+        return new RocketTrade(new ItemStack(Items.EMERALD, 1), rockets, 7, 8, 0.02f, 1, BuiltInRegistries.VILLAGER_PROFESSION.getResourceKey(VillagerProfession.CARTOGRAPHER).orElseThrow(), "Rocket Trade");
     }
 
     private static void loadTradesFromJson() throws CommandSyntaxException, FileNotFoundException {

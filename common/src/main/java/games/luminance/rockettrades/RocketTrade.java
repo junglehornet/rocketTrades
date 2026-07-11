@@ -8,8 +8,8 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.JsonOps;
 import dev.architectury.registry.level.entity.trade.TradeRegistry;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.Registries;
+import net.minecraft.core.component.DataComponentPredicate;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.npc.VillagerProfession;
@@ -17,13 +17,10 @@ import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.ItemStack;
 
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Optional;
 
 public class RocketTrade {
-    private final ItemStack inputItem;
+    private final ItemCost cost;
     private final ItemStack outputItem;
     private final int maxTrades;
     private final int xp;
@@ -32,8 +29,20 @@ public class RocketTrade {
     private final ResourceKey<VillagerProfession> profession;
     private final String name;
 
-    public RocketTrade(ItemStack inputItem, ItemStack outputItem, int maxTrades, int xp, float priceMultiplier, int villagerLevel, ResourceKey<VillagerProfession> profession, String name) {
-        this.inputItem = inputItem;
+    public RocketTrade(ItemStack stackCost, ItemStack outputItem, int maxTrades, int xp, float priceMultiplier, int villagerLevel, ResourceKey<VillagerProfession> profession, String name) {
+        DataComponentPredicate predicate = DataComponentPredicate.allOf(stackCost.getComponents());
+        this.cost = new ItemCost(stackCost.getItemHolder(), stackCost.getCount(), predicate);
+        this.outputItem = outputItem;
+        this.maxTrades = maxTrades;
+        this.xp = xp;
+        this.priceMultiplier = priceMultiplier;
+        this.villagerLevel = villagerLevel;
+        this.profession = profession;
+        this.name = name;
+    }
+
+    public RocketTrade(ItemCost cost, ItemStack outputItem, int maxTrades, int xp, float priceMultiplier, int villagerLevel, ResourceKey<VillagerProfession> profession, String name) {
+        this.cost = cost;
         this.outputItem = outputItem;
         this.maxTrades = maxTrades;
         this.xp = xp;
@@ -48,19 +57,27 @@ public class RocketTrade {
     }
 
     public static ResourceKey<VillagerProfession> getProfessionFromString(String professionString, CommandContext<CommandSourceStack> context) {
-        ArrayList<ResourceKey<VillagerProfession>> professions = RocketTrades.getProfessionList(context);
-        for (ResourceKey<VillagerProfession> profession: professions) {
-            String name = RocketTrades.getProfessionName(profession, context);
+        for (VillagerProfession p: BuiltInRegistries.VILLAGER_PROFESSION) {
+            String name = p.name();
+            if (name.equals("nitwit") || name.equals("none")) {
+                continue;
+            }
             if (name.equals(professionString)) {
+                ResourceKey<VillagerProfession> profession = BuiltInRegistries.VILLAGER_PROFESSION.getResourceKey(p).orElseThrow();
                 return profession;
             }
         }
         return null;
     }
 
-    private JsonElement itemStackToJson(ItemStack stack) {
+    private static JsonElement itemStackToJson(ItemStack stack) {
         Optional<JsonElement> optional = ItemStack.CODEC.encodeStart(JsonOps.INSTANCE, stack).result();
-        return optional.orElse(new JsonObject());
+        return optional.orElse(null);
+    }
+
+    private static JsonElement itemCostToJson(ItemCost cost) {
+        Optional<JsonElement> option = ItemCost.CODEC.encodeStart(JsonOps.INSTANCE, cost).result();
+        return option.orElse(null);
     }
 
     private static JsonObject resourceLocationToJson(ResourceLocation loc) {
@@ -79,7 +96,7 @@ public class RocketTrade {
 
     public JsonObject getJson() {
         JsonObject json = new JsonObject();
-        json.add("priceItem", itemStackToJson(this.inputItem));
+        json.add("priceItem", itemCostToJson(this.cost));
         json.add("soldItem", itemStackToJson(this.outputItem));
         json.addProperty("maxTrades", this.maxTrades);
         json.addProperty("xp", this.xp);
@@ -107,7 +124,7 @@ public class RocketTrade {
             return null;
         }
         JsonObject json = JsonParser.parseString(jsonString).getAsJsonObject();
-        ItemStack priceItem = ItemStack.CODEC.parse(JsonOps.INSTANCE, json.get("priceItem")).getOrThrow();
+        ItemCost cost = ItemCost.CODEC.parse(JsonOps.INSTANCE, json.get("priceItem")).getOrThrow();
         ItemStack soldItem = ItemStack.CODEC.parse(JsonOps.INSTANCE, json.get("soldItem")).getOrThrow();
         int maxUses = json.get("maxTrades").getAsInt();
         int xp = json.get("xp").getAsInt();
@@ -115,13 +132,13 @@ public class RocketTrade {
         int villagerLevel = json.get("villagerLevel").getAsInt();
         String name = json.get("name").getAsString();
         ResourceKey<VillagerProfession> profession = jsonToResourceKey(json.getAsJsonObject("profession"));
-        RocketTrade trade = new RocketTrade(priceItem, soldItem, maxUses, xp, priceMultiplier, villagerLevel, profession, name);
+        RocketTrade trade = new RocketTrade(cost, soldItem, maxUses, xp, priceMultiplier, villagerLevel, profession, name);
         return trade;
     }
 
     public void registerTrade() {
-        TradeRegistry.registerVillagerTrade(this.profession, this.villagerLevel, (entity, randomSource) -> new MerchantOffer(
-                new ItemCost(this.inputItem.getItem()),
+        TradeRegistry.registerVillagerTrade(BuiltInRegistries.VILLAGER_PROFESSION.get(this.profession), this.villagerLevel, (entity, randomSource) -> new MerchantOffer(
+                this.cost,
                 this.outputItem,
                 this.maxTrades,
                 this.xp,

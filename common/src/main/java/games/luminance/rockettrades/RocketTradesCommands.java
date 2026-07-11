@@ -13,22 +13,14 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import dev.architectury.event.events.common.CommandRegistrationEvent;
 
-import java.util.Objects;
-
 import joptsimple.internal.Strings;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.commands.arguments.EntityArgument;
-import net.minecraft.core.registries.Registries;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.VillagerProfession;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 public class RocketTradesCommands {
@@ -58,11 +50,14 @@ public class RocketTradesCommands {
     };
 
     private static final SuggestionProvider<CommandSourceStack> VILLAGER_PROFESSION_SUGGESTIONS = (context, builder) -> {
-        String[] professions = RocketTrades.getProfessionNameList(context);
-        for (String name: professions) {
-            if (name.startsWith(builder.getRemaining().toLowerCase())) {
-                builder.suggest(name);
-            }
+        for (VillagerProfession p: BuiltInRegistries.VILLAGER_PROFESSION) {
+          String name = p.name();
+          if (name.equals("nitwit") || name.equals("none")) {
+            continue;
+          }
+          if (name.startsWith(builder.getRemaining().toLowerCase())) {
+            builder.suggest(name);
+          }
         }
         return builder.buildFuture();
     };
@@ -80,6 +75,35 @@ public class RocketTradesCommands {
         context.getSource().sendSystemMessage(message);
     }
 
+    private static boolean validate(CommandContext<CommandSourceStack> context) {
+      if (RocketTrade.getProfessionFromString(StringArgumentType.getString(context, "villagerProfession"), context) == null) {
+        Component message = Component.literal("Error: Invalid villager profession.");
+        message.getStyle().applyFormat(ChatFormatting.RED);
+        context.getSource().sendSystemMessage (message);
+        return false;
+      }
+      ServerPlayer player = context.getSource().getPlayer();
+      if (player == null) {
+        Component message = Component.literal("You must be a player to run this command.");
+        message.getStyle().applyFormat(ChatFormatting.RED);
+        context.getSource().sendSystemMessage(message);
+        return false;
+      }
+      if (player.getOffhandItem().is(Items.AIR)) {
+        Component message = Component.literal("Error: cannot create trade without input item");
+        message.getStyle().applyFormat(ChatFormatting.RED);
+        player.sendSystemMessage(message);
+        return false;
+      }
+      if (player.getMainHandItem().is(Items.AIR)) {
+        Component message = Component.literal("Error: cannot create trade without output item");
+        message.getStyle().applyFormat(ChatFormatting.RED);
+        player.sendSystemMessage(message);
+        return false;
+      }
+      return true;
+    }
+
     private static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("addTrade")
                 .requires(commandSourceStack -> (commandSourceStack.hasPermission(2) || commandSourceStack.getServer().isSingleplayer()) && commandSourceStack.isPlayer())
@@ -87,39 +111,22 @@ public class RocketTradesCommands {
                         .then(Commands.argument("villagerLevel", IntegerArgumentType.integer(1))
                                 .then(Commands.argument("villagerProfession", StringArgumentType.string()).suggests(VILLAGER_PROFESSION_SUGGESTIONS)
                                     .executes(context -> {
-                                            if (RocketTrade.getProfessionFromString(StringArgumentType.getString(context, "villagerProfession"), context) == null) {
-                                                Component message = Component.literal("Error: Invalid villager profession.");
-                                                message.getStyle().applyFormat(ChatFormatting.RED);
-                                                context.getSource().sendSystemMessage (message);
-                                            } else {
-                                                ServerPlayer player = Objects.requireNonNull(context.getSource().getPlayer());
-                                                if (player.getOffhandItem().is(Items.AIR)) {
-                                                    Component message = Component.literal("Error: cannot create trade without input item");
-                                                    message.getStyle().applyFormat(ChatFormatting.RED);
-                                                    player.sendSystemMessage(message);
-                                                } else if (player.getMainHandItem().is(Items.AIR)) {
-                                                    Component message = Component.literal("Error: cannot create trade without output item");
-                                                    message.getStyle().applyFormat(ChatFormatting.RED);
-                                                    player.sendSystemMessage(message);
-                                                } else {
-                                                    RocketTrade trade = new RocketTrade(player.getOffhandItem(), player.getMainHandItem(), 8, 8, 0.02f, IntegerArgumentType.getInteger(context, "villagerLevel"), RocketTrade.getProfessionFromString(StringArgumentType.getString(context, "villagerProfession"), context), StringArgumentType.getString(context, "name"));
-                                                    RocketTrades.addTrade(trade);
-                                                    sendWarning(context);
-                                                }
-                                            }
-                                            return 1;
+                                        ServerPlayer player = context.getSource().getPlayer();
+                                        if (validate(context)) {
+                                            RocketTrade trade = new RocketTrade(player.getOffhandItem(), player.getMainHandItem(), 8, 8, 0.02f, IntegerArgumentType.getInteger(context, "villagerLevel"), RocketTrade.getProfessionFromString(StringArgumentType.getString(context, "villagerProfession"), context), StringArgumentType.getString(context, "name"));
+                                            RocketTrades.addTrade(trade);
+                                            sendWarning(context);
+                                        }
+                                        return 1;
                                         })
                                         .then(Commands.argument("maxTrades", IntegerArgumentType.integer(1)).then(Commands.argument("xp", IntegerArgumentType.integer(0)).then(Commands.argument("priceMultiplier", FloatArgumentType.floatArg(0.0F)).executes((context) -> {
-                                            if (RocketTrade.getProfessionFromString(StringArgumentType.getString(context, "villagerProfession"), context) == null) {
-                                                Component message = Component.literal("Error: Invalid villager profession.");
-                                                message.getStyle().applyFormat(ChatFormatting.RED);
-                                                context.getSource().sendSystemMessage(message);
-                                            } else {
-                                                RocketTrade trade = new RocketTrade(Objects.requireNonNull(context.getSource().getPlayer()).getOffhandItem(), Objects.requireNonNull(context.getSource().getPlayer()).getMainHandItem(), IntegerArgumentType.getInteger(context, "maxTrades"), IntegerArgumentType.getInteger(context, "xp"), FloatArgumentType.getFloat(context, "priceMultiplier"), IntegerArgumentType.getInteger(context, "villagerLevel"), RocketTrade.getProfessionFromString(StringArgumentType.getString(context, "villagerProfession"), context), StringArgumentType.getString(context, "name"));
-                                                RocketTrades.addTrade(trade);
-                                                sendWarning(context);
-                                            }
-                                            return 1;
+                                          ServerPlayer player = context.getSource().getPlayer();
+                                          if (validate(context)) {
+                                              RocketTrade trade = new RocketTrade(player.getOffhandItem(), player.getMainHandItem(), IntegerArgumentType.getInteger(context, "maxTrades"), IntegerArgumentType.getInteger(context, "xp"), FloatArgumentType.getFloat(context, "priceMultiplier"), IntegerArgumentType.getInteger(context, "villagerLevel"), RocketTrade.getProfessionFromString(StringArgumentType.getString(context, "villagerProfession"), context), StringArgumentType.getString(context, "name"));
+                                              RocketTrades.addTrade(trade);
+                                              sendWarning(context);
+                                          }
+                                          return 1;
                                         }))))))));
         
         dispatcher.register(Commands.literal("removeTrade")
@@ -133,7 +140,7 @@ public class RocketTradesCommands {
                                 Component message = Component.literal("Trade " + name + " successfully deleted.");
                                 message.getStyle().applyFormat(ChatFormatting.GREEN);
                                 context.getSource().sendSystemMessage(message);
-                                message = Component.literal("NOTE: This change will not take effect until the game is restarted.");
+                                message = Component.literal("NOTE: This change will not take effect until the world is restarted.");
                                 message.getStyle().applyFormat(ChatFormatting.RED);
                                 context.getSource().sendSystemMessage(message);
                                 return 1;

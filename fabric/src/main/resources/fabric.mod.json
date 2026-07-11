@@ -8,8 +8,8 @@
     "JungleHornet"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "homepage": "https://discord.luminance.games",
+    "sources": "https://github.com/junglehornet/rocketTrades"
   },
   "license": "CC0-1.0",
   "icon": "assets/rockettrades/icon.png",
@@ -23,10 +23,10 @@
     ]
   },
   "depends": {
-    "fabricloader": ">=0.18.1",
-    "minecraft": "~1.21.10",
+    "fabricloader": ">=0.19.3",
+    "minecraft": ">=1.21.1",
     "java": ">=21",
-    "architectury": ">=18.0.6",
+    "architectury": ">=13.0.8",
     "fabric-api": "*"
   },
   "suggests": {
